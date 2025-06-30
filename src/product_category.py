@@ -6,7 +6,7 @@ class Product:
         self.name: str = name
         self.description: str = description
         # self.price: float = price    # Предыдущее дом.задание.
-        self._price: float = price
+        self.__price: float = price
         self.quantity: int = quantity
 
     @property
@@ -15,7 +15,7 @@ class Product:
         Геттер для приватного атрибута цены.
         :return:
         """
-        return self._price
+        return self.__price
 
     @price.setter
     def price(self, value: float) -> None:
@@ -25,21 +25,21 @@ class Product:
         :return:
         """
         # if value > 0:
-        #     self._price = value
+        #     self.__price = value
         # else:
         #     print("Цена не должна быть нулевая или отрицательная")
         if value <= 0:
             print("Цена не должна быть нулевая или отрицательная")
             return
 
-        if value < self._price:
-            confirm = input(f"Понизить цену с {self._price} до {value}? ('y'/'n'): ").strip().lower()
+        if value < self.__price:
+            confirm = input(f"Понизить цену с {self.__price} до {value}? ('y'/'n'): ").strip().lower()
             if confirm in ("y", "yes"):
-                self._price = value
+                self.__price = value
             else:
                 print("Изменение цены отменено.")
         else:
-            self._price = value
+            self.__price = value
 
     @classmethod
     def new_product(cls, params: dict) -> "Product":
@@ -75,7 +75,7 @@ class Category:
         self.name: str = name
         self.description: str = description
         # self.products: list[Product] = products   # Предыдущее дом.задание.
-        self._products: list[Product] = []
+        self.__products: list[Product] = []
         for product in products:
             self.add_product(product)
 
@@ -88,15 +88,17 @@ class Category:
         :param product:
         :return:
         """
-        self._products.append(product)
+        if not isinstance(product, Product):
+            raise TypeError("Только объекты класса Product или уго наследников.")
+        self.__products.append(product)
         Category.product_count += 1
 
     @property
     def products(self) -> str:
         """
-        Возвращение копии списка товаров.
+        Возвращение копии списка товаров. Геттер.
         :return:
         """
         # return self.__products.copy()
         return "".join(f"{product.name}, {int(product.price)} руб. Остаток: {product.quantity} шт.\n"
-                       for product in self._products)
+                       for product in self.__products)

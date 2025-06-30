@@ -150,7 +150,5 @@ def test_category_product_format(sample_product: list[Product], category_counter
 
 def test_category_products_private(sample_product: list[Product], category_counters_reset: None) -> None:
     category = Category("Phones", "Accessories", sample_product)
-    # Проверяем, что products - property (геттер)
     assert isinstance(getattr(type(category), "products", None), property)
-    # Проверяем, что внутренний список действительно приватный
-    assert hasattr(category, "_products")
+    assert hasattr(category, "_Category__products")
