@@ -113,13 +113,13 @@ def test_product_addition() -> None:
 def test_product_addition_with_wrong_type() -> None:
     a = Product("A", "Описание", 100, 10)
     with pytest.raises(AttributeError):
-        a + 5
+        a + 5   # type: ignore[operator]
 
 
 def test_product_addition_with_none_raises() -> None:
     a = Product("A", "Описание", 100, 10)
     with pytest.raises(AttributeError):
-        a + None
+        a + None    # type: ignore[operator]
 
 
 # Тесты для class Category
@@ -187,7 +187,7 @@ def test_category_str(sample_product: list[Product], category_counters_reset: No
 def test_category_add_product_type_error(category_counters_reset: None) -> None:
     category = Category("Phones", "Accessories", [])
     with pytest.raises(TypeError):
-        category.add_product("Данный тип не товар")
+        category.add_product("Данный тип не товар")    # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize("products, expected", [
