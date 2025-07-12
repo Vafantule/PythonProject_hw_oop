@@ -85,8 +85,6 @@ def test_update_or_add_products_update_existing() -> None:
     assert products[0].price == 33
 
 
-# Тесты для class Category
-
 @pytest.mark.parametrize("name, description, price, quantity", [
     ("Motorola", "Rare phone", 9999.99, 1),
     ("Huawei", "New phone", 29999.99, 3),
@@ -99,6 +97,32 @@ def test_parametrized_product_init(name: str, description: str, price: float, qu
     assert product.price == price
     assert product.quantity == quantity
 
+
+def test_product_str() -> None:
+    product = Product("Тесты", "Описание", 80, 15)
+    assert str(product) == "Тесты, 80 руб. Остаток: 15 шт."
+
+
+def test_product_addition() -> None:
+    a = Product("A", "Описание", 100, 10)
+    b = Product("B", "Описание", 99, 9)
+    assert a + b == 1891
+    assert b + a == 1891
+
+
+def test_product_addition_with_wrong_type() -> None:
+    a = Product("A", "Описание", 100, 10)
+    with pytest.raises(AttributeError):
+        a + 5   # type: ignore[operator]
+
+
+def test_product_addition_with_none_raises() -> None:
+    a = Product("A", "Описание", 100, 10)
+    with pytest.raises(AttributeError):
+        a + None    # type: ignore[operator]
+
+
+# Тесты для class Category
 
 def test_category(sample_product: list[Product], category_counters_reset: None) -> None:
     category = Category("Phones", "Accessories", sample_product)
@@ -152,3 +176,26 @@ def test_category_products_private(sample_product: list[Product], category_count
     category = Category("Phones", "Accessories", sample_product)
     assert isinstance(getattr(type(category), "products", None), property)
     assert hasattr(category, "_Category__products")
+
+
+def test_category_str(sample_product: list[Product], category_counters_reset: None) -> None:
+    category = Category("Phones", "Accessories", sample_product)
+    total_quantity = sum(product.quantity for product in sample_product)
+    assert str(category) == f"Phones, количество продуктов: {total_quantity} шт."
+
+
+def test_category_add_product_type_error(category_counters_reset: None) -> None:
+    category = Category("Phones", "Accessories", [])
+    with pytest.raises(TypeError):
+        category.add_product("Данный тип не товар")    # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("products, expected", [
+    ([Product("A", "Описание", 10, 1),
+      Product("B", "Описание", 50, 5)], 1 + 5),
+    ([Product("A", "Описание", 10, 2)], 2),
+    ([], 0)
+])
+def test_category_str_quantity_sum(products: list[Product], expected: int, category_counters_reset: None) -> None:
+    category = Category("Тестирование", "Тестирование", products)
+    assert str(category).endswith(f"{expected} шт.")

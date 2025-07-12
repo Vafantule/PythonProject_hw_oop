@@ -1,3 +1,6 @@
+from typing import Iterator
+
+
 class Product:
     """
     Класс, описывающий товар.
@@ -63,6 +66,35 @@ class Product:
                 return
         product_list.append(new_product)
 
+    def __str__(self) -> str:
+        return f"{self.name}, {int(self.price)} руб. Остаток: {self.quantity} шт."
+
+    def __add__(self, other: "Product") -> float:
+        """
+        Складывает два товара как сумму их полной стоимости.
+        """
+        return self.price * self.quantity + other.price * other.quantity
+
+
+class CategoryIterator:
+    """
+    Итератор для перебора товаров одной категории.
+    """
+    def __init__(self, category: "Category") -> None:
+        self._products: list[Product] = category._Category__products    # type: ignore[attr-defined]
+        self._index: int = 0
+
+    def __iter__(self) -> "CategoryIterator":
+        return self
+
+    def __next__(self) -> Product:
+        if self._index < len(self._products):
+            result: Product = self._products[self._index]
+            self._index += 1
+            return result
+        else:
+            raise StopIteration
+
 
 class Category:
     """
@@ -102,3 +134,10 @@ class Category:
         # return self.__products.copy()
         return "".join(f"{product.name}, {int(product.price)} руб. Остаток: {product.quantity} шт.\n"
                        for product in self.__products)
+
+    def __str__(self) -> str:
+        total_quantity: int = sum(product.quantity for product in self.__products)
+        return f"{self.name}, количество продуктов: {total_quantity} шт."
+
+    def __iter__(self) -> Iterator[Product]:
+        return CategoryIterator(self)
