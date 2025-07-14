@@ -1,10 +1,9 @@
-from csv import excel
 from unittest.mock import patch
 
 import pytest
 from pytest import CaptureFixture, MonkeyPatch
 
-from src.product_category import Category, Product, Smartphone, LawnGrass
+from src.product_category import Category, LawnGrass, Product, Smartphone
 
 
 @pytest.fixture
@@ -221,8 +220,7 @@ def test_category_and_smartphone_or_lawngrass_class(category_counters_reset: Non
 
 def test_category_add_smartphone_and_lawngrass(category_counters_reset: None,
                                                sample_smartphone: Smartphone,
-                                               sample_lawngrass: LawnGrass
-) -> None:
+                                               sample_lawngrass: LawnGrass) -> None:
     category = Category("Общий", "описание", [])
     category.add_product(sample_smartphone)
     category.add_product(sample_lawngrass)
@@ -244,6 +242,7 @@ def test_smartphone_fields(sample_smartphone: Smartphone) -> None:
     assert smartphone.model == "22 X"
     assert smartphone.memory == 16
     assert smartphone.color == "grass"
+
 
 def test_smartphone_str(sample_smartphone: Smartphone) -> None:
     smartphone = sample_smartphone
