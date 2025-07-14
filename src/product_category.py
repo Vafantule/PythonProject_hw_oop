@@ -71,8 +71,10 @@ class Product:
 
     def __add__(self, other: "Product") -> float:
         """
-        Складывает два товара как сумму их полной стоимости.
+        Складывает два товара, одного класса, как сумму их полной стоимости.
         """
+        if type(self) is not type(other):
+            raise TypeError(f"Нельзя складывать товары разных классов: {type(self).__name__} & {type(other).__name__}")
         return self.price * self.quantity + other.price * other.quantity
 
 
@@ -121,7 +123,9 @@ class Category:
         :return:
         """
         if not isinstance(product, Product):
-            raise TypeError("Только объекты класса Product или уго наследников.")
+            if type(product) is type and issubclass(product, Product):
+                raise TypeError("Только экземпляры класса, а не классы продуктов.")
+            raise TypeError("Только объекты класса Product или его наследников.")
         self.__products.append(product)
         Category.product_count += 1
 
@@ -132,8 +136,7 @@ class Category:
         :return:
         """
         # return self.__products.copy()
-        return "".join(f"{product.name}, {int(product.price)} руб. Остаток: {product.quantity} шт.\n"
-                       for product in self.__products)
+        return "".join(f"{product}\n" for product in self.__products)
 
     def __str__(self) -> str:
         total_quantity: int = sum(product.quantity for product in self.__products)
@@ -141,3 +144,36 @@ class Category:
 
     def __iter__(self) -> Iterator[Product]:
         return CategoryIterator(self)
+
+
+class Smartphone(Product):
+    """
+    Класс-наследник от Product для смартфонов.
+    """
+    def __init__(self, name: str, description: str, price: float, quantity: int,
+                 efficiency: float, model: str, memory: int, color: str):
+        super().__init__(name, description, price, quantity)
+        self.efficiency = efficiency
+        self.model = model
+        self.memory = memory
+        self.color = color
+
+    def __str__(self) -> str:
+        return (f"{self.name} ({self.model}, {self.memory}, {self.color}, {self.efficiency}), "
+                f"{int(self.price)} руб. Остаток: {self.quantity} шт.")
+
+
+class LawnGrass(Product):
+    """
+    Класс-наследник от Product для травы газонной.
+    """
+    def __init__(self, name: str, description: str, price: float, quantity: int,
+                 country: str, germination_period: str, color: str):
+        super().__init__(name, description, price, quantity)
+        self.country = country
+        self.germination_period = germination_period
+        self.color = color
+
+    def __str__(self) -> str:
+        return (f"{self.name} ({self.country}, {self.germination_period}, {self.color}), "
+                f"{int(self.price)} руб. Остаток: {self.quantity} шт.")
