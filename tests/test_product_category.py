@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from pytest import CaptureFixture, MonkeyPatch
 
-from src.product_category import Category, Product
+from src.product_category import Category, LawnGrass, Product, Smartphone
 
 
 @pytest.fixture
@@ -12,17 +12,6 @@ def sample_product() -> list[Product]:
         Product("Product1", "Description1", 5000.0, 6),
         Product("Product2", "Description2", 15000.0, 16),
     ]
-
-
-@pytest.fixture
-def category_counters_reset() -> None:
-    Category.category_count = 0
-    Category.product_count = 0
-
-
-@pytest.fixture
-def sample_category(sample_product: list[Product], category_counters_reset: None) -> Category:
-    return Category("Gadgets", "All gadgets", sample_product)
 
 
 # Тесты для class Product
@@ -106,23 +95,38 @@ def test_product_str() -> None:
 def test_product_addition() -> None:
     a = Product("A", "Описание", 100, 10)
     b = Product("B", "Описание", 99, 9)
-    assert a + b == 1891
-    assert b + a == 1891
+    assert a + b == 100 * 10 + 9 * 99
 
 
 def test_product_addition_with_wrong_type() -> None:
     a = Product("A", "Описание", 100, 10)
-    with pytest.raises(AttributeError):
-        a + 5   # type: ignore[operator]
+    with pytest.raises(TypeError):
+        _ = a + 5  # type: ignore
 
 
 def test_product_addition_with_none_raises() -> None:
     a = Product("A", "Описание", 100, 10)
-    with pytest.raises(AttributeError):
+    with pytest.raises(TypeError):
         a + None    # type: ignore[operator]
 
 
+def test_product_addition_diff_types(sample_smartphone: Smartphone, sample_lawngrass: LawnGrass) -> None:
+    with pytest.raises(TypeError):
+        _ = sample_lawngrass + sample_smartphone
+
+
 # Тесты для class Category
+
+@pytest.fixture
+def category_counters_reset() -> None:
+    Category.category_count = 0
+    Category.product_count = 0
+
+
+@pytest.fixture
+def sample_category(sample_product: list[Product], category_counters_reset: None) -> Category:
+    return Category("Gadgets", "All gadgets", sample_product)
+
 
 def test_category(sample_product: list[Product], category_counters_reset: None) -> None:
     category = Category("Phones", "Accessories", sample_product)
@@ -186,8 +190,12 @@ def test_category_str(sample_product: list[Product], category_counters_reset: No
 
 def test_category_add_product_type_error(category_counters_reset: None) -> None:
     category = Category("Phones", "Accessories", [])
+    category.add_product(Product("Тестовый", "описание", 15, 51))
+    assert Category.product_count == 1
     with pytest.raises(TypeError):
         category.add_product("Данный тип не товар")    # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        category.add_product(Product)    # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize("products, expected", [
@@ -199,3 +207,81 @@ def test_category_add_product_type_error(category_counters_reset: None) -> None:
 def test_category_str_quantity_sum(products: list[Product], expected: int, category_counters_reset: None) -> None:
     category = Category("Тестирование", "Тестирование", products)
     assert str(category).endswith(f"{expected} шт.")
+
+
+def test_category_and_smartphone_or_lawngrass_class(category_counters_reset: None) -> None:
+    category_1 = Category("Phones", "описание", [])
+    category_2 = Category("Grass", "описание", [])
+    with pytest.raises(TypeError):
+        category_1.add_product(Smartphone)  # type: ignore
+    with pytest.raises(TypeError):
+        category_2.add_product(LawnGrass)   # type: ignore
+
+
+def test_category_add_smartphone_and_lawngrass(category_counters_reset: None,
+                                               sample_smartphone: Smartphone,
+                                               sample_lawngrass: LawnGrass) -> None:
+    category = Category("Общий", "описание", [])
+    category.add_product(sample_smartphone)
+    category.add_product(sample_lawngrass)
+    assert "Iphone" in category.products
+    assert "Трава зеленая" in category.products
+
+
+# Тесты для class Smartphone
+
+@pytest.fixture
+def sample_smartphone() -> Smartphone:
+    return Smartphone("Iphone", "Apple smartphone",
+                      180000.00, 13, 99.9, "22 X", 16, "grass")
+
+
+def test_smartphone_fields(sample_smartphone: Smartphone) -> None:
+    smartphone = sample_smartphone
+    assert smartphone.efficiency == 99.9
+    assert smartphone.model == "22 X"
+    assert smartphone.memory == 16
+    assert smartphone.color == "grass"
+
+
+def test_smartphone_str(sample_smartphone: Smartphone) -> None:
+    smartphone = sample_smartphone
+    expected = "Iphone (22 X, 16, grass, 99.9), 180000 руб. Остаток: 13 шт."
+    assert str(smartphone) == expected
+
+
+def test_smartphone_addition() -> None:
+    smartphone_1 = Smartphone("Samsung", "Описание", 5000,
+                              13, 99, "S29", 8, "black")
+    smartphone_2 = Smartphone("Nokia", "Описание", 500,
+                              11, 9, "3311", 64, "white")
+    assert smartphone_1 + smartphone_2 == 5000 * 13 + 500 * 11
+
+
+# Тесты для class LawnGrass
+
+@pytest.fixture
+def sample_lawngrass() -> LawnGrass:
+    return LawnGrass("Трава зеленая", "Lawn grass",
+                     299, 100, "Россия", "2 месяца", "зеленый")
+
+
+def test_lawngrass_fields(sample_lawngrass: LawnGrass) -> None:
+    lawngrass = sample_lawngrass
+    assert lawngrass.country == "Россия"
+    assert lawngrass.germination_period == "2 месяца"
+    assert lawngrass.color == "зеленый"
+
+
+def test_lawngrass_str(sample_lawngrass: LawnGrass) -> None:
+    lawngrass = sample_lawngrass
+    expected = "Трава зеленая (Россия, 2 месяца, зеленый), 299 руб. Остаток: 100 шт."
+    assert str(lawngrass) == expected
+
+
+def test_lawngrass_addition() -> None:
+    lawngrass_1 = LawnGrass("Трава 1", "Описание", 200,
+                            50, "RU", "14 дней", "яркий")
+    lawngrass_2 = LawnGrass("Трава 2", "Описание", 400,
+                            90, "US", "4 days", "green")
+    assert lawngrass_1 + lawngrass_2 == 200 * 50 + 400 * 90
