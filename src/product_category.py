@@ -1,14 +1,41 @@
-from typing import Iterator
+from typing import Iterator, Any
+from abc import ABC, abstractmethod
 
 
-class Product:
+class LoggerMixin:
     """
-    Класс, описывающий товар.
+    Миксин для логирования информации о создании объекта.
     """
-    def __init__(self, name: str, description: str, price: float, quantity: int):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Логирование создание объекта.
+        """
+        class_name: str = self.__class__.__name__
+        params_str: str = ""
+        if args:
+            params_str += "Позиционные: " + ", ".join(repr(arg) for arg in args)
+        if kwargs:
+            if params_str:
+                params_str += "; "
+            params_str += "Именованные: " + ", ".join(f"{key}={value!r}" for key, value in kwargs.items())
+        print(f"[LoggerMixin] Создан объект класса {class_name} с параметрами: {params_str}")
+        super().__init__(*args, **kwargs)
+
+
+class BaseProduct(ABC):
+    """
+    Абстрактный базовый класс для всех товаров.
+    """
+    name: str
+    description: str
+    _price: float
+    quantity: int
+    def __init__(self, name: str, description: str, price: float, quantity: int) -> None:
+        """
+        Инициализация базового продукта.
+        """
         self.name: str = name
         self.description: str = description
-        # self.price: float = price    # Предыдущее дом.задание.
         self.__price: float = price
         self.quantity: int = quantity
 
@@ -24,13 +51,41 @@ class Product:
     def price(self, value: float) -> None:
         """
         Сеттер для приватного атрибута цены.
-        :param value:
-        :return:
         """
-        # if value > 0:
-        #     self.__price = value
-        # else:
-        #     print("Цена не должна быть нулевая или отрицательная")
+        if value <= 0:
+            print("Цена не должна быть нулевая или отрицательная")
+            return
+        self.__price = value
+
+    @abstractmethod
+    def __str__(self):
+        pass
+
+    @classmethod
+    @abstractmethod
+    def new_product(cls, params: dict) -> "BaseProduct":
+        pass
+
+
+class Product(LoggerMixin, BaseProduct):
+    """
+    Класс, описывающий товар, который наследует базовую функциональность от BaseProduct.
+    """
+    def __init__(self, name: str, description: str, price: float, quantity: int):
+        """
+        Инициализация продукта.
+        """
+        # self.name: str = name
+        # self.description: str = description
+        # self.__price: float = price
+        # self.quantity: int = quantity
+        super().__init__(name, description, price, quantity)
+
+    @BaseProduct.price.setter
+    def price(self, value: float) -> None:
+        """
+        Сеттер для приватного атрибута цены.
+        """
         if value <= 0:
             print("Цена не должна быть нулевая или отрицательная")
             return
@@ -48,8 +103,6 @@ class Product:
     def new_product(cls, params: dict) -> "Product":
         """
         Создание new объекта Product из словаря параметров. Класс-метод.
-        :param params:
-        :return:
         """
         return cls(
             params.get("name", ""),
@@ -59,6 +112,9 @@ class Product:
 
     @staticmethod
     def update_or_add_product(product_list: list["Product"], new_product: "Product") -> None:
+        """
+        Обновляет количество существующего продукта или добавляет новый в список.
+        """
         for product in product_list:
             if product.name == new_product.name:
                 product.quantity += new_product.quantity
@@ -67,6 +123,9 @@ class Product:
         product_list.append(new_product)
 
     def __str__(self) -> str:
+        """
+        Строковое представление продукта.
+        """
         return f"{self.name}, {int(self.price)} руб. Остаток: {self.quantity} шт."
 
     def __add__(self, other: "Product") -> float:
