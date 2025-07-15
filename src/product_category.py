@@ -28,7 +28,7 @@ class BaseProduct(ABC):
     """
     name: str
     description: str
-    _price: float
+    __price: float
     quantity: int
     def __init__(self, name: str, description: str, price: float, quantity: int) -> None:
         """
@@ -90,14 +90,14 @@ class Product(LoggerMixin, BaseProduct):
             print("Цена не должна быть нулевая или отрицательная")
             return
 
-        if value < self.__price:
-            confirm = input(f"Понизить цену с {self.__price} до {value}? ('y'/'n'): ").strip().lower()
+        if value < self._BaseProduct__price:
+            confirm = input(f"Понизить цену с {self._BaseProduct__price} до {value}? ('y'/'n'): ").strip().lower()
             if confirm in ("y", "yes"):
-                self.__price = value
+                self._BaseProduct__price = value
             else:
                 print("Изменение цены отменено.")
         else:
-            self.__price = value
+            self._BaseProduct__price = value
 
     @classmethod
     def new_product(cls, params: dict) -> "Product":
