@@ -1,5 +1,5 @@
-from typing import Iterator, Any
 from abc import ABC, abstractmethod
+from typing import Any, Dict, Iterator
 
 
 class LoggerMixin:
@@ -30,6 +30,7 @@ class BaseProduct(ABC):
     description: str
     __price: float
     quantity: int
+
     def __init__(self, name: str, description: str, price: float, quantity: int) -> None:
         """
         Инициализация базового продукта.
@@ -58,12 +59,12 @@ class BaseProduct(ABC):
         self.__price = value
 
     @abstractmethod
-    def __str__(self):
+    def __str__(self) -> str:
         pass
 
     @classmethod
     @abstractmethod
-    def new_product(cls, params: dict) -> "BaseProduct":
+    def new_product(cls, params: Dict[str, Any]) -> "BaseProduct":
         pass
 
 
@@ -71,17 +72,17 @@ class Product(LoggerMixin, BaseProduct):
     """
     Класс, описывающий товар, который наследует базовую функциональность от BaseProduct.
     """
-    def __init__(self, name: str, description: str, price: float, quantity: int):
+    def __init__(self, name: str, description: str, price: float, quantity: int) -> None:
         """
         Инициализация продукта.
         """
-        # self.name: str = name
-        # self.description: str = description
-        # self.__price: float = price
-        # self.quantity: int = quantity
         super().__init__(name, description, price, quantity)
 
-    @BaseProduct.price.setter
+    @property
+    def price(self) -> float:
+        return super().price
+
+    @price.setter
     def price(self, value: float) -> None:
         """
         Сеттер для приватного атрибута цены.
@@ -90,8 +91,9 @@ class Product(LoggerMixin, BaseProduct):
             print("Цена не должна быть нулевая или отрицательная")
             return
 
-        if value < self._BaseProduct__price:
-            confirm = input(f"Понизить цену с {self._BaseProduct__price} до {value}? ('y'/'n'): ").strip().lower()
+        if value < self._BaseProduct__price:    # type: ignore
+            confirm: str = input(f"Понизить цену с {self._BaseProduct__price} "     # type: ignore
+                                 f"до {value}? ('y'/'n'): ").strip().lower()
             if confirm in ("y", "yes"):
                 self._BaseProduct__price = value
             else:
@@ -100,7 +102,7 @@ class Product(LoggerMixin, BaseProduct):
             self._BaseProduct__price = value
 
     @classmethod
-    def new_product(cls, params: dict) -> "Product":
+    def new_product(cls, params: dict[str, Any]) -> "Product":
         """
         Создание new объекта Product из словаря параметров. Класс-метод.
         """
