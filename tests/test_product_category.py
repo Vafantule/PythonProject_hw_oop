@@ -1,9 +1,10 @@
+from typing import Any
 from unittest.mock import patch
 
 import pytest
-from pytest import CaptureFixture, MonkeyPatch
+from pytest import CaptureFixture
 
-from src.product_category import Category, LawnGrass, Product, Smartphone
+from src.product_category import BaseProduct, Category, LawnGrass, LoggerMixin, Product, Smartphone
 
 
 @pytest.fixture
@@ -32,19 +33,23 @@ def test_product_price_setter_negative(capsys: CaptureFixture[str]) -> None:
     assert product.price == 500.0
 
 
-def test_product_price_lower_confirm_yes(monkeypatch: MonkeyPatch) -> None:
+def test_product_price_lower_confirm_yes(monkeypatch: pytest.MonkeyPatch) -> None:
     product = Product("Тесты", "Описание", 500.0, 2)
     monkeypatch.setattr("builtins.input", lambda _: "y")
     product.price = 50
     assert product.price == 50
 
 
-def test_product_price_lower_confirm_no(monkeypatch: MonkeyPatch, capsys: CaptureFixture[str]) -> None:
+def test_product_price_lower_confirm_no(monkeypatch: pytest.MonkeyPatch) -> None:
+    logs = []
+
+    def fake_print(*args: object) -> None:
+        logs.append(str(args[0]))
     product = Product("Тесты", "Описание", 500.0, 2)
     monkeypatch.setattr("builtins.input", lambda _: "n")
-    product.price = 50
-    captured = capsys.readouterr()
-    assert "Изменение цены отменено." in captured.out
+    with patch("builtins.print", fake_print):
+        product.price = 10.0
+    assert any("Изменение цены отменено." in message for message in logs)
     assert product.price == 500.0
 
 
@@ -115,6 +120,12 @@ def test_product_addition_diff_types(sample_smartphone: Smartphone, sample_lawng
         _ = sample_lawngrass + sample_smartphone
 
 
+def test_product_price_private_access() -> None:
+    product = Product("Тесты", "Описание", 99.9, 9)
+    assert hasattr(product, "_BaseProduct__price")
+    assert getattr(product, "_BaseProduct__price") == 99.9
+
+
 # Тесты для class Category
 
 @pytest.fixture
@@ -140,9 +151,9 @@ def test_category(sample_product: list[Product], category_counters_reset: None) 
 
 
 def test_category_class_attributes_count(sample_product: list[Product], category_counters_reset: None) -> None:
-    category_1 = Category("Phones", "description_1", sample_product)
-    category_2 = Category("TV", "description_2",
-                          [Product("TV", "description", 50000.00, 6)])
+    _ = Category("Phones", "description_1", sample_product)
+    _ = Category("TV", "description_2",
+                 [Product("TV", "description", 50000.00, 6)])
     assert Category.category_count == 2
     assert Category.product_count == len(sample_product) + 1
 
@@ -150,13 +161,13 @@ def test_category_class_attributes_count(sample_product: list[Product], category
 def test_category_counter_with_patch(sample_product: list[Product], category_counters_reset: None) -> None:
     with patch.object(Category, "category_count", 50):
         with patch.object(Category, "product_count", 500):
-            category = Category("Test", "Test", sample_product)
+            _ = Category("Test", "Test", sample_product)
             assert Category.category_count == 51
             assert Category.product_count == 502
 
     Category.category_count = 0
     Category.product_count = 0
-    category_2 = Category("Test2", "Test2", [])
+    _ = Category("Test2", "Test2", [])
     assert Category.category_count == 1
     assert Category.product_count == 0
 
@@ -285,3 +296,94 @@ def test_lawngrass_addition() -> None:
     lawngrass_2 = LawnGrass("Трава 2", "Описание", 400,
                             90, "US", "4 days", "green")
     assert lawngrass_1 + lawngrass_2 == 200 * 50 + 400 * 90
+
+
+# Тесты для class LoggerMixin
+
+def test_logger_mixin(monkeypatch: pytest.MonkeyPatch) -> None:
+    logs: list[str] = []
+
+    def fake_print(*args: object) -> None:
+        logs.append(str(args[0]))
+
+    monkeypatch.setattr("builtins.print", fake_print)
+
+    class FakeClassBase:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            pass
+
+    class FakeClass(LoggerMixin, FakeClassBase):
+        def __init__(self, aa: int, ab: int, ac: str = "point") -> None:
+            super().__init__(aa, ab, ac=ac)
+
+    _ = FakeClass(50, 15, "qwerty")
+    assert any("[LoggerMixin] Создан объект класса FakeClass" in message for message in logs)
+    assert any("Позиционные: 50, 15; Именованные: ac='qwerty'" in message for message in logs)
+
+
+@pytest.mark.parametrize("args, kwargs, expected", [
+    ((99, ), {}, "Позиционные: 99"),
+    ((50, 15), {"ax": "qwerty"}, "Позиционные: 50, 15; Именованные: ax='qwerty'"),
+    ((), {"key": "value"}, "Именованные: key='value'"),
+])
+def test_logger_mixin_parametrized(monkeypatch: pytest.MonkeyPatch,
+                                   args: tuple[Any, ...],
+                                   kwargs: dict[str, Any],
+                                   expected: str) -> None:
+    logs: list[str] = []
+
+    def fake_print(*args: object) -> None:
+        logs.append(str(args[0]))
+    monkeypatch.setattr("builtins.print", fake_print)
+
+    class FakeClassBase:
+        def __init__(self, *args: object, **kwargs: object):
+            pass
+
+    class FakeClass(LoggerMixin, FakeClassBase):
+        def __init__(self, *args: object, **kwargs: object):
+            super().__init__(*args, **kwargs)
+    FakeClass(*args, **kwargs)
+    assert any(expected in message for message in logs)
+
+
+# Тесты для class BaseProduct
+
+def test_baseproduct_is_abstract() -> None:
+    with pytest.raises(TypeError):
+        BaseProduct("Тестовые", "Описание", 99, 9)  # type: ignore[abstract]
+
+
+def test_baseproduct_price_property_and_setter() -> None:
+    class ConcreteProduct(BaseProduct):
+        def __str__(self) -> str:
+            return "Тесты"
+
+        @classmethod
+        def new_product(cls, params: dict) -> "ConcreteProduct":
+            return cls("Тестовые", "Описание", 99, 9)
+    product = ConcreteProduct("Тест", "Описание", 99.9, 9)
+    assert product.price == 99.9
+    product.price = 55.9
+    assert product.price == 55.9
+
+
+def test_baseproduct_price_setter_negative(monkeypatch: pytest.MonkeyPatch) -> None:
+    logs: list[str] = []
+
+    def fake_print(*args: object) -> None:
+        logs.append(str(args[0]))
+    monkeypatch.setattr("builtins.print", fake_print)
+
+    class ConcreteProduct(BaseProduct):
+        def __str__(self) -> str:
+            return "Тесты"
+
+        @classmethod
+        def new_product(cls, params: dict) -> "ConcreteProduct":
+            return cls("Тестовые", "Описание", 99, 9)
+
+    product: ConcreteProduct = ConcreteProduct("Тест", "Описание", 99.9, 9)
+    product.price = -50.5
+    assert any("Цена не должна быть нулевая или отрицательная" in message for message in logs)
+    assert product.price == 99.9
