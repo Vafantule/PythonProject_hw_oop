@@ -191,6 +191,7 @@ class BaseCategory(ABC):
         """
         pass
 
+
 class Category(LoggerMixin, BaseCategory):
     """
     Класс, описывающий категорию товаров.
