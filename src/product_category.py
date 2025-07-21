@@ -35,6 +35,8 @@ class BaseProduct(ABC):
         """
         Инициализация базового продукта.
         """
+        if quantity == 0:
+            raise ValueError("Товар с нулевым количеством не может быть добавлен.")
         self.name: str = name
         self.description: str = description
         self.__price: float = price
@@ -139,6 +141,15 @@ class Product(LoggerMixin, BaseProduct):
         return self.price * self.quantity + other.price * other.quantity
 
 
+class ZeroQuantityError(Exception):
+    """
+    Исключение выбрасывается, когда пытаются добавить товар с нулевым количеством
+    в категорию или заказ.
+    """
+    def __init__(self, message: str = "Количество товаров должно быть больше нуля"):
+        super().__init__(message)
+
+
 class CategoryIterator:
     """
     Итератор для перебора товаров одной категории.
@@ -159,45 +170,77 @@ class CategoryIterator:
             raise StopIteration
 
 
-class Category:
+class BaseCategory(ABC):
+    """
+    Абстрактный базовый класс для Category.
+    """
+    name: str
+    description: str
+
+    def __init__(self, name: str, description: str) -> None:
+        """
+        Инициализация базовой категории.
+        """
+        self.name: str = name
+        self.description: str = description
+
+    @abstractmethod
+    def __str__(self) -> str:
+        """
+        Абстрактный метод.
+        """
+        pass
+
+class Category(LoggerMixin, BaseCategory):
     """
     Класс, описывающий категорию товаров.
     """
     category_count: int = 0
     product_count: int = 0
 
-    def __init__(self, name: str, description: str, products: list):
-        self.name: str = name
-        self.description: str = description
-        # self.products: list[Product] = products   # Предыдущее дом.задание.
+    def __init__(self, name: str, description: str, products: list["Product"], *args: Any, **kwargs: Any):
+        super().__init__(name, description)
         self.__products: list[Product] = []
         for product in products:
             self.add_product(product)
-
         Category.category_count += 1
-        # Category.product_count += len(products)   # Предыдущее дом.задание.
 
     def add_product(self, product: Product) -> None:
         """
         Добавляет товар в категорию.
-        :param product:
-        :return:
         """
-        if not isinstance(product, Product):
-            if type(product) is type and issubclass(product, Product):
-                raise TypeError("Только экземпляры класса, а не классы продуктов.")
-            raise TypeError("Только объекты класса Product или его наследников.")
-        self.__products.append(product)
-        Category.product_count += 1
+        try:
+            if not isinstance(product, Product):
+                if type(product) is type and issubclass(product, Product):
+                    raise TypeError("Только экземпляры класса, а не классы продуктов.")
+                raise TypeError("Только объекты класса Product или его наследников.")
+            if product.quantity == 0:
+                raise ZeroQuantityError("Количество товаров должно быть больше нуля")
+            self.__products.append(product)
+            Category.product_count += 1
+            print(f"Товар '{product.name}' успешно добавлен в категорию.")
+        except ZeroQuantityError as error:
+            print(error)
+        finally:
+            print("Обработка добавления категорий товара завершена.")
 
     @property
     def products(self) -> str:
         """
         Возвращение копии списка товаров. Геттер.
-        :return:
         """
-        # return self.__products.copy()
         return "".join(f"{product}\n" for product in self.__products)
+
+    def middle_price(self) -> float:
+        """
+        Считает средний ценник всех товаров категории.
+        """
+        try:
+            total_price: float = sum(product.price for product in self.__products)
+            count: int = len(self.__products)
+            return total_price / count
+        except ZeroDivisionError:
+            return 0
 
     def __str__(self) -> str:
         total_quantity: int = sum(product.quantity for product in self.__products)
@@ -238,3 +281,33 @@ class LawnGrass(Product):
     def __str__(self) -> str:
         return (f"{self.name} ({self.country}, {self.germination_period}, {self.color}), "
                 f"{int(self.price)} руб. Остаток: {self.quantity} шт.")
+
+
+class Order(BaseCategory):
+    """
+    Класс, описывающий заказ на один товар.
+    """
+    product: "Product"
+    quantity: int
+    total_price: float
+
+    def __init__(self, name: str, description: str, product: "Product", quantity: int, price: float) -> None:
+        super().__init__(name, description)
+        try:
+            if quantity <= 0:
+                raise ZeroQuantityError("Количество товаров должно быть больше нуля")
+            self.product: "Product" = product
+            self.quantity: int = quantity
+            self.total_price: float = product.price * quantity
+            print(f"Товар '{product.name}' успешно добавлен в заказ.")
+        except ZeroQuantityError as error:
+            print(error)
+        finally:
+            print("Обработка добавления товара, в заказ, завершена.")
+
+    def __str__(self) -> str:
+        return (f"Заказ: {self.name}\n"
+                f"Описание: {self.description}\n"
+                f"Товар: {self.product.name}\n"
+                f"Количество: {self.quantity}\n"
+                f"Итого: {self.total_price:.2f} руб.")

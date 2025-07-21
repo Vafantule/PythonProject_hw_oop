@@ -15,6 +15,21 @@ def sample_product() -> list[Product]:
     ]
 
 
+class FakeProduct(Product):
+    """
+    Тестовый класс Product для проверки Category.
+    """
+    def __init__(self, name: str, price: float, quantity: int, description: str):
+        super().__init__(name, description, price, quantity)
+        self.name = name
+        self.price = price
+        # self.description = description
+        self.quantity = quantity
+
+    def __str__(self) -> str:
+        return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
+
+
 # Тесты для class Product
 
 def test_product() -> None:
