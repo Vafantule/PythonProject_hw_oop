@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from pytest import CaptureFixture
 
-from src.product_category import BaseProduct, Category, LawnGrass, LoggerMixin, Product, Smartphone
+from src.product_category import BaseProduct, Category, LawnGrass, LoggerMixin, Product, Smartphone, ZeroQuantityError
 
 
 @pytest.fixture
@@ -13,6 +13,21 @@ def sample_product() -> list[Product]:
         Product("Product1", "Description1", 5000.0, 6),
         Product("Product2", "Description2", 15000.0, 16),
     ]
+
+
+class FakeProduct(Product):
+    """
+    Тестовый класс Product для проверки Category.
+    """
+    def __init__(self, name: str, price: float, quantity: int, description: str):
+        super().__init__(name, description, price, quantity)
+        self.name = name
+        self.price = price
+        # self.description = description
+        self.quantity = quantity
+
+    def __str__(self) -> str:
+        return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
 
 
 # Тесты для class Product
@@ -237,6 +252,12 @@ def test_category_add_smartphone_and_lawngrass(category_counters_reset: None,
     category.add_product(sample_lawngrass)
     assert "Iphone" in category.products
     assert "Трава зеленая" in category.products
+
+
+def test_add_product_to_category_type_error_class() -> None:
+    category = Category("Книги", "Категория книг", [])
+    with pytest.raises(TypeError):
+        category.add_product(Product)
 
 
 # Тесты для class Smartphone
