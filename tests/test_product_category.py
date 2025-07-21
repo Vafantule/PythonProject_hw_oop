@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from pytest import CaptureFixture
 
-from src.product_category import BaseProduct, Category, LawnGrass, LoggerMixin, Product, Smartphone
+from src.product_category import BaseProduct, Category, LawnGrass, LoggerMixin, Product, Smartphone, ZeroQuantityError
 
 
 @pytest.fixture
@@ -252,6 +252,12 @@ def test_category_add_smartphone_and_lawngrass(category_counters_reset: None,
     category.add_product(sample_lawngrass)
     assert "Iphone" in category.products
     assert "Трава зеленая" in category.products
+
+
+def test_add_product_to_category_type_error_class() -> None:
+    category = Category("Книги", "Категория книг", [])
+    with pytest.raises(TypeError):
+        category.add_product(Product)
 
 
 # Тесты для class Smartphone
